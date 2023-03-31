@@ -1,0 +1,4 @@
+pymatgen
+crystal-toolkit
+ipywidgets
+jupyterlab>=3.0.0
