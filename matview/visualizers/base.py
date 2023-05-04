@@ -222,6 +222,44 @@ class BaseVisualizer(
         self._plot_objects = {obj.name: obj for obj in objects}
         self._plot = plot
         return plot
+
+    def get_controls(self) -> widgets.VBox:
+        """
+        Get widgets to control the structure.
+        """
+        elem_w = self.get_element_widgets()
+        bond_w = self.get_bond_widgets(
+            self._struct_graph,
+            initial_algo=self._bonding_algo,
+            max_bond_length=10
+        )
+        atom_view_w = self.get_atom_view_widgets()
+        
+        # TODO: show atom labels. camera moves unintentionally.
+        #def on_label_change(change):
+        #    labels = self._plot_objects["labels"]
+        #    camera = self._plot.camera
+        #    with self._plot.hold_sync():
+        #        if change["new"]:
+        #            self._plot += labels
+        #        else:
+        #            self._plot -= labels
+        #        self._plot.camera = camera
+                
+        #show_label = widgets.Checkbox(value=False, description="show label")
+        #show_label.observe(on_label_change, names="value")
+        
+        desc = widgets.Textarea(
+            self.get_structure_desc(), layout={"height": "100px", "width": "auto"}
+        )
+        acc = widgets.Accordion(
+            children=[bond_w, atom_view_w, desc],
+            titles=["Bond update", "Atom view", "Description"],
+        )
+        controls = widgets.VBox(
+            [elem_w, acc], layout={"height": "auto", "grid_area": "widgets"}
+        )
+        return controls
      
     def show(
         self,
@@ -250,50 +288,8 @@ class BaseVisualizer(
                 the orthographic camera, it is 'pseudo' orthographic projection.
                 Set to True if scientific correctness is a priority.
                 In scientific visualization, ``False`` may be preferred.
-        """   
-        elem_w = self.get_element_widgets()
-        bond_w = self.get_bond_widgets(
-            self._struct_graph,
-            initial_algo=self._bonding_algo,
-            max_bond_length=10
-        )
-        atom_view_w = self.get_atom_view_widgets()
-        
-        # TODO: show atom labels. camera moves unintentionally.
-        #def on_label_change(change):
-        #    labels = self._plot_objects["labels"]
-        #    camera = self._plot.camera
-        #    with self._plot.hold_sync():
-        #        if change["new"]:
-        #            self._plot += labels
-        #        else:
-        #            self._plot -= labels
-        #        self._plot.camera = camera
-                
-        #show_label = widgets.Checkbox(value=False, description="show label")
-        #show_label.observe(on_label_change, names="value")
-        
-        #param_region = widgets.VBox(
-        #    [widgets.HTML("<h3>Element</h3>"), elem_w,
-        #     widgets.HTML("<h3>Bond</h3>"), bond_w,
-        #     widgets.HTML("<h3>Description</h3>"),
-        #     widgets.Textarea(
-        #         self.get_structure_desc(), layout={"height": "100px", "width": "350px"}
-        #     )
-        #    ],
-        #    layout={"height": "auto", "grid_area": "params"}
-        #)
-        desc = widgets.Textarea(
-            self.get_structure_desc(), layout={"height": "100px", "width": "auto"}
-        )
-        acc = widgets.Accordion(
-            children=[bond_w, atom_view_w, desc],
-            titles=["Bond update", "Atom view", "Description"],
-        )
-        param_region = widgets.VBox(
-            [elem_w, acc], layout={"height": "auto", "grid_area": "params"}
-        )
-        
+        """
+        controls = self.get_controls() 
         plot = self.get_plot(mode=mode, perspective=perspective)
         
         with self._output:
@@ -302,12 +298,12 @@ class BaseVisualizer(
         self._output.layout.grid_area = "output"
 
         return widgets.GridBox(
-            children=[self._output, param_region],
+            children=[self._output, controls],
             layout={
                 "grid_gap": "50px",
                 "grid_template_columns": f"{self.width}px auto",
                 "grid_template_areas": """
-                'output params'
+                'output widgets'
                 """,
                 "height": "auto",
                 "max_height": f"{self.height + 10}px",
