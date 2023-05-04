@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-import importlib
 from typing import Literal
-import warnings
 
 from crystal_toolkit.renderables.structuregraph import StructureGraph
 import k3d
 import numpy as np
-from pymatgen.core import Structure
 from scipy.spatial import Delaunay
 
 from matview.utils import to_int_color
@@ -19,7 +16,7 @@ class CrystalVisualizer(BaseVisualizer):
     Crystal structure visualizer.
 
     Args:
-        struct_graph: Pymatgen :class:`StructureGraph` object.
+        struct: Pymatgen :class:`Structure` object.
         bonding_algo: Bonding algorithm. Choose from classes implemented in
             ``pymatgen.analysis.local_env``.
         bonding_algo_kwargs: Keyward arguments passed to ``bonding_algo`` class.
@@ -34,46 +31,6 @@ class CrystalVisualizer(BaseVisualizer):
         >>> visualizer = CrystalVisualizer(pmg_struct)
         >>> visualizer.show()
     """
-    def __init__(
-        self,
-        struct: Structure,
-        bonding_algo: str = "CrystalNN",
-        bonding_algo_kwargs: dict | None = None,
-        color_scheme: Literal["VESTA", "Jmol"] = "VESTA",
-        atomic_radius: float | None = 1.0,
-        atom_shader: Literal["3dSpecular", "3d", "mesh"] = "mesh",
-        width: int = 600,
-        height: int = 400
-    ):
-        # wrap positions
-        struct = struct.as_dict(verbosity=0)
-        for site in struct["sites"]:
-            site["abc"] = np.mod(site["abc"], 1)
-        struct = Structure.from_dict(struct)
-        
-        bonding_algo_kwargs = bonding_algo_kwargs or {}
-        bonding_algo_cls = getattr(
-            importlib.import_module("pymatgen.analysis.local_env"),
-            bonding_algo
-        )(**bonding_algo_kwargs)
-        
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            struct_graph = StructureGraph.with_local_env_strategy(
-                struct, bonding_algo_cls
-            )
-
-        struct_graph.structure.remove_oxidation_states()
-        super().__init__(
-            struct_graph,
-            color_scheme=color_scheme,
-            atomic_radius=atomic_radius,
-            atom_shader=atom_shader,
-            width=width,
-            height=height
-        )
-        self._bonding_algo = bonding_algo
-        
     def get_polyhedra(
         self,
         add_edge: bool = True

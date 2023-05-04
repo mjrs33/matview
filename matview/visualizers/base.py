@@ -9,9 +9,9 @@ from IPython.display import display
 import ipywidgets as widgets
 import k3d
 import numpy as np
-from pymatgen.core import Element
+from pymatgen.core import Element, Structure
 
-from matview.utils import to_int_color
+from matview.utils import get_struct_graph, to_int_color
 from matview.widgets import (
     AtomViewWidgetsMixin, BondWidgetsMixin, ElementWidgetsMixin
 )
@@ -29,7 +29,10 @@ class BaseVisualizer(
         :meth:`_update_ctk_scene`.
         
     Args:
-        struct_graph: Pymatgen :class:`StructureGraph` object.
+        struct: Pymatgen :class:`Structure` object.
+        bonding_algo: Bonding algorithm. Choose from classes implemented in
+            ``pymatgen.analysis.local_env``.
+        bonding_algo_kwargs: Keyward arguments passed to ``bonding_algo`` class.
         color_scheme: Color scheme (VESTA or Jmol).
         atomic_radius: Atomic radius. If None, use pymatgen atomic radius.
         atom_shader: Atom style (3dSpecular, 3d, or mesh).
@@ -38,18 +41,22 @@ class BaseVisualizer(
     """
     def __init__(
         self,
-        struct_graph: StructureGraph,
+        struct: Structure,
+        bonding_algo: str = "CrystalNN",
+        bonding_algo_kwargs: dict | None = None,
         color_scheme: Literal["VESTA", "Jmol"] = "VESTA",
         atomic_radius: float | None = 1.0,
         atom_shader: Literal["3dSpecular", "3d", "mesh"] = "mesh",
         width: int = 600,
-        height: int = 400,
+        height: int = 400
     ):
         self.color_scheme = color_scheme
         self.atomic_radius = atomic_radius
         self.atom_shader = atom_shader
         self.width = width
         self.height = height
+
+        struct_graph = get_struct_graph(struct)
         self._update_ctk_scene(struct_graph)
         
         self._output = widgets.Output(
@@ -60,6 +67,7 @@ class BaseVisualizer(
             }
         )
         self._plot_objects = None
+        self._bonding_algo = bonding_algo
     
     def _update_ctk_scene(self, struct_graph):
         legend = Legend(struct_graph.structure, color_scheme=self.color_scheme)
@@ -282,7 +290,9 @@ class BaseVisualizer(
             children=[bond_w, atom_view_w, desc],
             titles=["Bond update", "Atom view", "Description"],
         )
-        param_region = widgets.VBox([elem_w, acc], layout={"height": "auto", "grid_area": "params"})
+        param_region = widgets.VBox(
+            [elem_w, acc], layout={"height": "auto", "grid_area": "params"}
+        )
         
         plot = self.get_plot(mode=mode, perspective=perspective)
         
@@ -296,13 +306,11 @@ class BaseVisualizer(
             layout={
                 "grid_gap": "50px",
                 "grid_template_columns": f"{self.width}px auto",
-                #"grid_template_rows": "auto auto",
                 "grid_template_areas": """
                 'output params'
                 """,
                 "height": "auto",
                 "max_height": f"{self.height + 10}px",
-                #overflow="scroll"
             }
         )
 
