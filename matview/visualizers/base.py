@@ -38,6 +38,7 @@ class BaseVisualizer(
         atom_shader: Atom style (3dSpecular, 3d, or mesh).
         width: Width of structure visualization window in px unit.
         height: Height of structure visualization window in px unit.
+        ctk_scene_kwargs: Keyward arguments passed to `StructureGraph.get_scene`.
     """
     def __init__(
         self,
@@ -48,13 +49,15 @@ class BaseVisualizer(
         atomic_radius: float | None = 1.0,
         atom_shader: Literal["3dSpecular", "3d", "mesh"] = "mesh",
         width: int = 600,
-        height: int = 400
+        height: int = 400,
+        ctk_scene_kwargs: dict | None = None
     ):
         self.color_scheme = color_scheme
         self.atomic_radius = atomic_radius
         self.atom_shader = atom_shader
         self.width = width
         self.height = height
+        self.ctk_scene_kwargs = ctk_scene_kwargs or {}
 
         struct_graph = get_struct_graph(struct)
         self._update_ctk_scene(struct_graph)
@@ -71,7 +74,7 @@ class BaseVisualizer(
     
     def _update_ctk_scene(self, struct_graph):
         legend = Legend(struct_graph.structure, color_scheme=self.color_scheme)
-        ctk_scene = struct_graph.get_scene(legend=legend)
+        ctk_scene = struct_graph.get_scene(legend=legend, **self.ctk_scene_kwargs)
         self._ctk_scene = ctk_scene
         
         ctk_contents = {}
@@ -289,8 +292,8 @@ class BaseVisualizer(
                 Set to True if scientific correctness is a priority.
                 In scientific visualization, ``False`` may be preferred.
         """
-        controls = self.get_controls() 
         plot = self.get_plot(mode=mode, perspective=perspective)
+        controls = self.get_controls() 
         
         with self._output:
             self._output.clear_output(wait=True)
