@@ -5,7 +5,7 @@ with open("requirements.txt") as f:
 
 setup(
     name = "matview",
-    version = "0.0.1",
+    version = "0.1.0",
     packages=["matview"],
     install_requires=install_requires
 )
